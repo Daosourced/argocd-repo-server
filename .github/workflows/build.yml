@@ -1,0 +1,55 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "trunk"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/daosourced/argocd-repo-server
+
+jobs:
+  # NOTE: Each job runs in its own VM
+  job_build:
+    name: Build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Versioning
+        run: |
+          SHORT_COMMIT=$(echo $GITHUB_SHA | cut -c -7)
+          echo "Short commit: $SHORT_COMMIT"
+
+          ARGOCD_VERSION=$(grep "ARG ARGOCD_VERSION" Dockerfile | cut -d "=" -f2)
+          echo "ArgoCD version: $ARGOCD_VERSION"
+
+          IMAGE_SHA_TAG="$IMAGE_NAME:$SHORT_COMMIT"
+          echo "IMAGE_SHA_TAG=$IMAGE_SHA_TAG" >> $GITHUB_ENV
+
+          IMAGE_SEM_TAG="$IMAGE_NAME:$ARGOCD_VERSION"
+          echo "IMAGE_SEM_TAG=$IMAGE_SEM_TAG" >> $GITHUB_ENV
+
+      - name: Docker Login
+        uses: docker/login-action@v2.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: USERNAME # ${{ github.actor }}
+          # GITHUB_TOKEN cannot pull images from other repositories
+          password: ${{ secrets.PAT }}
+
+      - name: Build image
+        run: |
+          echo "docker build -t $IMAGE_SHA_TAG ."
+          docker build -t $IMAGE_SHA_TAG .
+
+          echo "docker tag ${IMAGE_SHA_TAG} ${IMAGE_SEM_TAG}"
+          docker tag ${IMAGE_SHA_TAG} ${IMAGE_SEM_TAG}
+
+      - name: Push image
+        run: |
+          echo "docker push $IMAGE_SHA_TAG"
+          docker push $IMAGE_SHA_TAG
+          echo "docker push $IMAGE_SEM_TAG"
+          docker push $IMAGE_SEM_TAG
