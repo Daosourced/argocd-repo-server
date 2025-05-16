@@ -28,7 +28,8 @@ jobs:
           IMAGE_SHA_TAG="$IMAGE_NAME:$SHORT_COMMIT"
           echo "IMAGE_SHA_TAG=$IMAGE_SHA_TAG" >> $GITHUB_ENV
 
-          IMAGE_SEM_TAG="$IMAGE_NAME:$ARGOCD_VERSION"
+          DATE=$(date +%Y%m%d)
+          IMAGE_SEM_TAG="$IMAGE_NAME:$ARGOCD_VERSION-$DATE"
           echo "IMAGE_SEM_TAG=$IMAGE_SEM_TAG" >> $GITHUB_ENV
 
       - name: Docker Login
